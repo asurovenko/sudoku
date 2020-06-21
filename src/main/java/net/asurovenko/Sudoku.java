@@ -2,36 +2,40 @@ package net.asurovenko;
 
 import org.apache.commons.lang3.tuple.Pair;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-public class NewSudoku {
+@SuppressWarnings("Duplicates")
+public class Sudoku {
+
+    private static final Set<Integer> ALL_NUMBERS = Set.of(1, 2, 3, 4, 5, 6, 7, 8, 9);
+    private static final int NUMBER_OFFSET = 48;
 
     private final Cell[][] matrix;
-    private final Set<Integer>[] lines = new HashSet[9];
-    private final Set<Integer>[] columns = new HashSet[9];
-    private final Set<Integer>[][] blocks = new HashSet[3][3];
+    private final Set<Integer>[] linesNumbers = new HashSet[9];
+    private final Set<Integer>[] columnsNumbers = new HashSet[9];
+    private final Set<Integer>[][] blocksNumbers = new HashSet[3][3];
 
-    public NewSudoku(Cell[][] matrix) {
-        this.matrix = matrix;
-        for (int i = 0; i < 9; i++) {
-            lines[i] = new HashSet<>();
-            columns[i] = new HashSet<>();
+    public Sudoku(String str) {
+        matrix = new Cell[9][9];
+        init();
+        String[] rows = str.replace("\r", "").replace("_", "0").split("\n");
+        if (rows.length != 9) {
+            throw new IllegalArgumentException("Wrong string value. Rows number must be 9");
         }
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < 3; j++) {
-                blocks[i][j] = new HashSet<>();
+        for (int i = 0; i < 9; i++) {
+            if (rows[i].length() != 9) {
+                throw new IllegalArgumentException("Wrong string value. Column number must be 9");
             }
-        }
-        for (int i = 0; i < 9; i++) {
-            for (int j = 0; j < 9; j++) {
-                int value = matrix[i][j].getValue();
+            char[] digits = rows[i].toCharArray();
+            for (int j = 0; j < digits.length; j++) {
+                int value = digits[j] - NUMBER_OFFSET;
+                matrix[i][j] = new Cell();
+                matrix[i][j].setValue(value);
+                matrix[i][j].setX(i);
+                matrix[i][j].setY(j);
                 if (value != 0) {
                     set(i, j, value);
                 }
@@ -39,41 +43,23 @@ public class NewSudoku {
         }
     }
 
-    public NewSudoku(String str) {
-        this(fillMatrixFromStr(str));
+    private void init() {
+        for (int i = 0; i < 9; i++) {
+            linesNumbers[i] = new HashSet<>();
+            columnsNumbers[i] = new HashSet<>();
+        }
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 3; j++) {
+                blocksNumbers[i][j] = new HashSet<>();
+            }
+        }
     }
 
     private void set(int x, int y, int value) {
-        lines[x].add(value);
-        columns[y].add(value);
-        blocks[y / 3][x / 3].add(value);
+        linesNumbers[x].add(value);
+        columnsNumbers[y].add(value);
+        blocksNumbers[y / 3][x / 3].add(value);
         matrix[x][y].setValue(value);
-    }
-
-    private void setAndRecalculate(int x, int y, int value) {
-        set(x, y, value);
-        recalculatePossibleValues();
-    }
-
-    private static Cell[][] fillMatrixFromStr(String str) {
-        Cell[][] result = new Cell[9][9];
-        String[] rows = str.replace("\r", "").replace("_", "0").split("\n");
-        if (rows.length != 9) {
-            throw new IllegalArgumentException("Wrong string value. Rows number must be 9");
-        }
-        for (int i = 0; i < rows.length; i++) {
-            if (rows[i].length() != 9) {
-                throw new IllegalArgumentException("Wrong string value. Column number must be 9");
-            }
-            char[] digits = rows[i].toCharArray();
-            for (int j = 0; j < digits.length; j++) {
-                result[i][j] = new Cell();
-                result[i][j].setValue(digits[j] - 48);
-                result[i][j].setX(i);
-                result[i][j].setY(j);
-            }
-        }
-        return result;
     }
 
     private void recalculatePossibleValues() {
@@ -84,7 +70,7 @@ public class NewSudoku {
     private boolean recalculatePossibleValue() {
         for (int i = 0; i < 9; i++) {
             for (int j = 0; j < 9; j++) {
-                Cell cell = this.matrix[i][j];
+                Cell cell = matrix[i][j];
                 if (cell.getValue() == 0) {
                     Set<Integer> possibleValues = calculatePossibleValues(i, j);
                     if (possibleValues.size() == 1) {
@@ -93,17 +79,18 @@ public class NewSudoku {
                     }
                     cell.setPossibleValues(possibleValues);
                 } else {
-                    cell.setPossibleValues(new HashSet<>());
+                    cell.setEmptyPossibleValues();
                 }
             }
         }
-        return checkAllBlocks();
+        return checkAllBlocksByPossibleValue();
     }
 
-    private boolean checkAllBlocks() {
+    //return true if new value is set
+    private boolean checkAllBlocksByPossibleValue() {
         for (int i = 0; i < 3; i++) {
             for (int j = 0; j < 3; j++) {
-                if (checkBlock(i, j)) {
+                if (checkBlockByPossibleValue(i, j)) {
                     return true;
                 }
             }
@@ -111,7 +98,7 @@ public class NewSudoku {
         return false;
     }
 
-    private boolean checkBlock(int x, int y) {
+    private boolean checkBlockByPossibleValue(int x, int y) {
         Map<Integer, Set<Pair<Integer, Integer>>> map = new HashMap<>();
         for (int i = x * 3; i < (x * 3) + 3; i++) {
             for (int j = y * 3; j < (y * 3) + 3; j++) {
@@ -122,38 +109,35 @@ public class NewSudoku {
                 }
             }
         }
-        AtomicBoolean result = new AtomicBoolean(false);
-        map.forEach((value, pairs) -> {
-            if (pairs.stream().map(Pair::getLeft).distinct().count() == 1) {
-                Integer line = pairs.iterator().next().getLeft();
+        for (Map.Entry<Integer, Set<Pair<Integer, Integer>>> entry : map.entrySet()) {
+            if (entry.getValue().stream().map(Pair::getLeft).distinct().count() == 1) {
+                Integer line = entry.getValue().iterator().next().getLeft();
                 for (int i = 0; i < 9; i++) {
                     if (i < y * 3 || i >= (y * 3) + 3) {
                         Set<Integer> possibleValues = matrix[line][i].getPossibleValues();
-                        possibleValues.remove(value);
+                        possibleValues.remove(entry.getKey());
                         if (possibleValues.size() == 1) {
                             set(line, i, possibleValues.iterator().next());
-                            result.set(true);
-                            return;
+                            return true;
                         }
                     }
                 }
             }
-            if (pairs.stream().map(Pair::getRight).distinct().count() == 1) {
-                Integer col = pairs.iterator().next().getRight();
+            if (entry.getValue().stream().map(Pair::getRight).distinct().count() == 1) {
+                Integer col = entry.getValue().iterator().next().getRight();
                 for (int i = 0; i < 9; i++) {
                     if (i < x * 3 || i >= (x * 3) + 3) {
                         Set<Integer> possibleValues = matrix[i][col].getPossibleValues();
-                        possibleValues.remove(value);
+                        possibleValues.remove(entry.getKey());
                         if (possibleValues.size() == 1) {
                             set(i, col, possibleValues.iterator().next());
-                            result.set(true);
-                            return;
+                            return true;
                         }
                     }
                 }
             }
-        });
-        return result.get();
+        }
+        return false;
     }
 
     //return true if new value is set
@@ -170,7 +154,6 @@ public class NewSudoku {
         if (checkCellByBlock(x, y)) {
             return true;
         }
-
         return false;
     }
 
@@ -178,10 +161,10 @@ public class NewSudoku {
     private boolean checkCellByBlock(int x, int y) {
         Map<Integer, Integer> map = new HashMap<>();
 
-        int fromX = x - (x%3);
+        int fromX = x - (x % 3);
         int toX = fromX + 3;
 
-        int fromY = y - (y%3);
+        int fromY = y - (y % 3);
         int toY = fromY + 3;
 
         for (int i = fromX; i < toX; i++) {
@@ -192,121 +175,123 @@ public class NewSudoku {
                 }
             }
         }
-
-        AtomicBoolean isUpdated = new AtomicBoolean(false);
-        map.forEach((v, count) -> {
-            if (count == 1) {
+        for (Map.Entry<Integer, Integer> entry : map.entrySet()) {
+            if (entry.getValue() == 1) {
                 for (int i = fromX; i < toX; i++) {
                     for (int j = fromY; j < toY; j++) {
                         Set<Integer> possibleValues = matrix[i][j].getPossibleValues();
-                        if (possibleValues.contains(v)) {
-                            set(i, j, v);
-                            isUpdated.set(true);
-                            return;
+                        if (possibleValues.contains(entry.getValue())) {
+                            set(i, j, entry.getValue());
+                            return true;
                         }
                     }
                 }
             }
-        });
-        return isUpdated.get();
+        }
+        return false;
     }
 
     //return true if new value is set
     private boolean checkCellByLine(int x) {
+        //number -> count in line
         Map<Integer, Integer> map = new HashMap<>();
         for (int i = 0; i < 9; i++) {
             Set<Integer> possibleValues = matrix[x][i].getPossibleValues();
-
             for (Integer v : possibleValues) {
                 map.put(v, map.getOrDefault(v, 0) + 1);
             }
         }
-        AtomicBoolean isUpdated = new AtomicBoolean(false);
-        map.forEach((v, count) -> {
-            if (count == 1) {
+        for (Map.Entry<Integer, Integer> entry : map.entrySet()) {
+            if (entry.getValue() == 1) {
+                Integer nuber = entry.getKey();
                 for (int i = 0; i < 9; i++) {
-                    Set<Integer> possibleValues = matrix[x][i].getPossibleValues();
-                    if (possibleValues.contains(v)) {
-                        set(x, i, v);
-                        isUpdated.set(true);
-                        return;
+                    if (tryToUpdate(x, i, nuber)) {
+                        return true;
                     }
                 }
             }
-        });
-        return isUpdated.get();
+        }
+        return false;
     }
 
     //return true if new value is set
     private boolean checkCellByCol(int y) {
+        //number -> count in col
         Map<Integer, Integer> map = new HashMap<>();
         for (int i = 0; i < 9; i++) {
             Set<Integer> possibleValues = matrix[i][y].getPossibleValues();
-
             for (Integer v : possibleValues) {
                 map.put(v, map.getOrDefault(v, 0) + 1);
             }
         }
-        AtomicBoolean isUpdated = new AtomicBoolean(false);
-        map.forEach((v, count) -> {
-            if (count == 1) {
+        for (Map.Entry<Integer, Integer> entry : map.entrySet()) {
+            if (entry.getValue() == 1) {
+                Integer nuber = entry.getKey();
                 for (int i = 0; i < 9; i++) {
-                    Set<Integer> possibleValues = matrix[i][y].getPossibleValues();
-                    if (possibleValues.contains(v)) {
-                        set(i, y, v);
-                        isUpdated.set(true);
-                        return;
+                    if (tryToUpdate(i, y, nuber)) {
+                        return true;
                     }
                 }
             }
-        });
-        return isUpdated.get();
+        }
+        return false;
+    }
+
+    private boolean tryToUpdate(int x, int y, int value) {
+        Set<Integer> possibleValues = matrix[x][y].getPossibleValues();
+        if (possibleValues.contains(value)) {
+            set(x, y, value);
+            return true;
+        }
+        return false;
     }
 
     private Set<Integer> calculatePossibleValues(int x, int y) {
-        Set<Integer> set = new HashSet<>();
-        for (int i = 1; i <= 9; i++) {
-            set.add(i);
-        }
-        set.removeAll(lines[x]);
-        set.removeAll(columns[y]);
-        set.removeAll(blocks[y / 3][x / 3]);
+        Set<Integer> set = new HashSet<>(ALL_NUMBERS);
+        set.removeAll(linesNumbers[x]);
+        set.removeAll(columnsNumbers[y]);
+        set.removeAll(blocksNumbers[y / 3][x / 3]);
         return set;
     }
 
-    public static void main(String[] args) throws IOException {
-        String s = Files.readString(Path.of("C:\\Users\\alexey\\Desktop\\8.txt"));
-        NewSudoku sudoku = new NewSudoku(s);
-        sudoku.recalculatePossibleValues();
-
-        for (int k = 0; k < 1000; k++) {
-
-
+    public void solve() {
+        recalculatePossibleValues();
+        do {
             for (int i = 0; i < 9; i++) {
                 for (int j = 0; j < 9; j++) {
-                    if (sudoku.checkCell(i, j)) {
-                        sudoku.recalculatePossibleValues();
+                    if (checkCell(i, j)) {
+                        recalculatePossibleValues();
                     }
                 }
             }
-
-        }
-        System.out.println();
-        sudoku.print();
-
+        } while (hasEmpty());
     }
 
-    private void print() {
+    private boolean hasEmpty() {
+        for (int i = 0; i < 9; i++) {
+            for (int j = 0; j < 9; j++) {
+                if (matrix[i][j].getValue() == 0) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public String print() {
+        StringBuilder sb = new StringBuilder(90);
         for (int i = 0; i < 9; i++) {
             for (int j = 0; j < 9; j++) {
                 Cell cell = matrix[i][j];
                 if (cell.getValue() != 0) {
-                    System.out.print(cell.getValue());
+                    sb.append(cell.getValue());
                 } else {
-                    System.out.print("_");
+                    sb.append("_");
                 }
             }
-            System.out.println();
+            sb.append('\n');
         }
+        return sb.toString().trim();
     }
+
 }

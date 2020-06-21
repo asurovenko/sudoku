@@ -1,19 +1,24 @@
 package net.asurovenko;
 
+import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 public class Cell {
-    private Set<Integer> possibleValues;
     private int value;
     private int x;
     private int y;
+    private Set<Integer> possibleValues;
 
-    public Set<Integer> getPossibleValues() {
-        return possibleValues;
+    public Cell() {
+        this(0, -1, -1);
     }
 
-    public void setPossibleValues(Set<Integer> possibleValues) {
-        this.possibleValues = possibleValues;
+    public Cell(int value, int x, int y) {
+        this.value = value;
+        this.x = x;
+        this.y = y;
+        this.possibleValues = new HashSet<>();
     }
 
     public int getValue() {
@@ -38,5 +43,35 @@ public class Cell {
 
     public void setY(int y) {
         this.y = y;
+    }
+
+    public Set<Integer> getPossibleValues() {
+        return possibleValues;
+    }
+
+    public void setPossibleValues(Set<Integer> possibleValues) {
+        this.possibleValues = possibleValues;
+    }
+
+    public void setEmptyPossibleValues() {
+        if (!possibleValues.isEmpty()) {
+            possibleValues = new HashSet<>();
+        }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Cell cell = (Cell) o;
+        return value == cell.value &&
+                x == cell.x &&
+                y == cell.y &&
+                Objects.equals(possibleValues, cell.possibleValues);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(possibleValues, value, x, y);
     }
 }

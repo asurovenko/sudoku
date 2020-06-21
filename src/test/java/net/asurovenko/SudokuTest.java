@@ -15,6 +15,11 @@ public class SudokuTest {
     }
 
     @Test
+    public void testHard2() {
+        testSudoku("hard-2-input.txt", "hard-2-output.txt");
+    }
+
+    @Test
     public void testEasy1() {
         testSudoku("easy-1-input.txt", "easy-1-output.txt");
     }
