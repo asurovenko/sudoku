@@ -43,6 +43,19 @@ public class Sudoku {
         }
     }
 
+    public void solve() {
+        recalculatePossibleValues();
+        do {
+            for (int i = 0; i < 9; i++) {
+                for (int j = 0; j < 9; j++) {
+                    if (checkCell(i, j)) {
+                        recalculatePossibleValues();
+                    }
+                }
+            }
+        } while (hasEmpty());
+    }
+
     private void init() {
         for (int i = 0; i < 9; i++) {
             linesNumbers[i] = new HashSet<>();
@@ -254,19 +267,6 @@ public class Sudoku {
         return set;
     }
 
-    public void solve() {
-        recalculatePossibleValues();
-        do {
-            for (int i = 0; i < 9; i++) {
-                for (int j = 0; j < 9; j++) {
-                    if (checkCell(i, j)) {
-                        recalculatePossibleValues();
-                    }
-                }
-            }
-        } while (hasEmpty());
-    }
-
     private boolean hasEmpty() {
         for (int i = 0; i < 9; i++) {
             for (int j = 0; j < 9; j++) {
@@ -278,7 +278,8 @@ public class Sudoku {
         return false;
     }
 
-    public String print() {
+    @Override
+    public String toString() {
         StringBuilder sb = new StringBuilder(90);
         for (int i = 0; i < 9; i++) {
             for (int j = 0; j < 9; j++) {
