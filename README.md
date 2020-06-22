@@ -1,8 +1,8 @@
 # sudoku
 
 ### Important note
-It can be not fully right algorithm, it checked used several "expert level" sudoku. 
-Wrong solutions were not found, but it cannot mean that everyone else will be correct. If you notice any wrong solution, please let me know.
+It may be not fully correct algorithm, it was checked using several "expert level" sudoku. Wrong solutions were not found, but it doesnt mean that everyone else is correct. If you notice any wrong solutions, please let me know.
+This is just a pet project and because of that the architecture not the best. The project requires refactoring for better readability of the code(if it is needed, let me know).
 
 This is just pet project and because of that the architecture not the best. 
 The project requires refactoring for better readability of the code(if it will be needed, let me know).
