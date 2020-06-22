@@ -1,3 +1,35 @@
+# IDE
+.gradle/
+build/
+*~
+.DS_Store
+.project
+/out/
+output/
+.bundle
+vendor/ruby
+output_stage_one/
+.idea/
+.idea_modules/
+*.iml
+*.class
+.settings/
+.classpath
+.fbExcludeFilterFile
+.fbIncludeFilterFile
+/tmp
+
+# Package Files
+*.jar
+*.war
+*.ear
+*.rpm
+*.ipr
+*.iws
+target/
+pom.xml.versionsBackup
+.tmp
+
 # Compiled class file
 *.class
 
